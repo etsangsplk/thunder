@@ -243,15 +243,14 @@ func (s *Schema) buildDescriptor(table string, primaryKeyType PrimaryKeyType, ty
 			return nil, fmt.Errorf("bad type %s: duplicate column %s", typ, column)
 		}
 
-		var scannable func() Scannable
-
+		scalarType := field.Type
 		if field.Type.Kind() == reflect.Ptr {
-			scannable, _ = s.scalarTypes[field.Type.Elem()]
-		} else {
-			scannable, _ = s.scalarTypes[field.Type]
+			scalarType = field.Type.Elem()
 		}
 
-		if scannable == nil {
+		scannable, ok := s.scalarTypes[scalarType]
+		scaninterface := reflect.TypeOf((*Scannable)(nil)).Elem()
+		if !ok && !scalarType.Implements(scaninterface) && !reflect.PtrTo(scaninterface).Implements(scaninterface) {
 			return nil, fmt.Errorf("bad type %s: field %s has unsupported type %s", typ, field.Name, field.Type)
 		}
 
